@@ -1,9 +1,9 @@
 /**
  * @author ktwice@mail.ru
  *
- * The program cuts the contents of the log file by year into separate files.
- * Log-file name is specified in the first parameter (default: access_log).
- * Files are created next to log-file.
+ * The program copies the contents of the log-file into separate files by year.
+ * The log-file name is specified in the first parameter (default: access_log).
+ * Files are created next to the log-file.
  * Files are named with postfix: Year-after-dot.
  */
 #include <stdio.h>
@@ -97,7 +97,7 @@ printf("\n%llu: Next Year must be %d not %d.", reads.lines, yout, y);
       if(!(bytes = readBytes(buf, f))) {
         close2(fout, writes.lines);
         fout = NULL;
-        printf("\nWARNING: Last line without LineFeed.");
+        printf("\nWARNING: There is no LineFeed in the last line.");
         break;
       }
       reads.bytes+=bytes;
@@ -110,8 +110,8 @@ printf("\n%llu: Next Year must be %d not %d.", reads.lines, yout, y);
   
   reads.seconds = (unsigned long long)round(difftime(time(NULL), t));
   if(reads.seconds == 0) reads.seconds = 1;
-  printf("\n<%s> SUCCESSFULLY split %llu lines into %llu files per %llu seconds"
-    , fname, reads.lines, reads.parts, reads.seconds);
+  printf("\nSUCCESSFULLY distributed %llu lines into %llu files per %llu seconds"
+    , reads.lines, reads.parts, reads.seconds);
   if(reads.empties > 0) printf("\nWARNING: %llu empty line(s) ignored"
     , reads.empties);
 //  printf("\n%llu tails(over %d bytes) readed", reads.tails, BUF_SIZE);

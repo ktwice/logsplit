@@ -24,11 +24,18 @@ typedef struct {
   unsigned long long tails;
 } CNT_T;
 
+CNT_T reads, writes;
+
 int lineHeadYear(const char* s) {
-  if((s = strchr(s, '[')) == NULL) return 0; 
-  if((s = strchr(++s, '/')) == NULL) return 0; 
-  if((s = strchr(++s, '/')) == NULL) return 0; 
-  return atoi(++s);
+  int y = 0;
+  if((s = strchr(s, '[')) != NULL)
+    if((s = strchr(++s, '/')) != NULL)
+      if((s = strchr(++s, '/')) != NULL) {
+        y = atoi(++s);
+        if(y != 0) return y;
+      }
+  printf("\n%llu: Year not found in line.", reads.lines);
+  exit(2);
 }
 
 FILE* open2(char* fname, char* mode) {
@@ -39,26 +46,31 @@ FILE* open2(char* fname, char* mode) {
 }
 
 int readBytes(char* buf, FILE* f) {
-  if(fgets(buf, BUF_SIZE, f) != NULL) return strlen(buf);
+  int bytes;
+  if(fgets(buf, BUF_SIZE, f) != NULL) {
+    bytes = strlen(buf);
+    reads.bytes += bytes;
+    return bytes;
+  }
   if(feof(f)) return 0;
   perror("fgets()");
   exit(2);
 }
 
 int writeLine(char* buf, int bytes, FILE* fout) {
+  writes.bytes += bytes;
   if(fwrite(buf, bytes, 1, fout) != -1) return(buf[bytes-1] == '\n');
   perror("fwrite()");
   exit(2);
 }
 
-void close2(FILE* fout, unsigned long long lines) {
+void close2(FILE* fout) {
   fclose(fout);
-  printf(" %llu lines.", lines);
+  printf(" %llu lines (%llu bytes).", writes.lines, writes.bytes);
 }
 
 int main(int argc, char* argv[]) {
   time_t t = time(NULL);
-  CNT_T reads, writes;
   int bytes, y, yout = 0;
   char buf[BUF_SIZE], fnameout[NBUF_SIZE];
   char* fname = argc>1 ? argv[1] : "access_log";
@@ -67,7 +79,6 @@ int main(int argc, char* argv[]) {
   memset(&reads, 0, sizeof(reads));
   printf("\nRead from <%s>", fname);
   while((bytes = readBytes(buf, f)) != 0) {
-    reads.bytes+=bytes;
     reads.lines++;
     if(bytes == 1) {
       reads.empties++;
@@ -75,15 +86,12 @@ int main(int argc, char* argv[]) {
       continue;
     }
     y = lineHeadYear(buf);
-    if(y==0) {
-      printf("\n%llu: Year not found in line.", reads.lines);
-      exit(2);
-    }
     if(y != yout) {
       if(fout != NULL) {
-        close2(fout, writes.lines);
+        close2(fout);
         if(++yout != y) {
-printf("\n%llu: Next Year must be %d not %d.", reads.lines, yout, y);
+          printf("\n%llu: Next Year must be %d not %d."
+            , reads.lines, yout, y);
           exit(2);
         }
       } else yout = y;
@@ -95,17 +103,16 @@ printf("\n%llu: Next Year must be %d not %d.", reads.lines, yout, y);
     }
     while(!writeLine(buf, bytes, fout)) {
       if(!(bytes = readBytes(buf, f))) {
-        close2(fout, writes.lines);
+        close2(fout);
         fout = NULL;
         printf("\nWARNING: There is no LineFeed in the last line.");
         break;
       }
-      reads.bytes+=bytes;
       reads.tails++;
     }
     writes.lines++;
   }
-  if(fout != NULL) close2(fout, writes.lines);
+  if(fout != NULL) close2(fout);
   fclose(f);
   
   reads.seconds = (unsigned long long)round(difftime(time(NULL), t));

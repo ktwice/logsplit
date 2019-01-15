@@ -26,7 +26,7 @@ typedef struct {
 
 CNT_T reads, writes;
 
-int lineHeadYear(const char* s) {
+int getYear(const char* s) {
   int y;
   if((s = strchr(s, '[')) != NULL)
     if((s = strchr(++s, '/')) != NULL)
@@ -37,12 +37,12 @@ int lineHeadYear(const char* s) {
   exit(2);
 }
 
-FILE* open2(char* fname, char* mode, CNT_T* p, char* sf) {
+FILE* openFile(char* fname, char* mode, CNT_T* p, char* sf) {
   FILE* f = fopen(fname, mode);
   if(f != NULL) {
-      printf(sf, fname);
-      memset(p, 0, sizeof(CNT_T));
-      return f;
+    printf(sf, fname);
+    memset(p, 0, sizeof(CNT_T));
+    return f;
   }
   perror(fname);
   exit(2);
@@ -67,7 +67,7 @@ int writeLine(char* buf, int bytes, FILE* fout) {
   exit(2);
 }
 
-void close2(FILE* fout) {
+void closeFile(FILE* fout) {
   fclose(fout);
   printf(" %llu lines (%llu bytes).", writes.lines, writes.bytes);
 }
@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
   char buf[BUF_SIZE], fnameout[NBUF_SIZE];
   char* fname = argc>1 ? argv[1] : "access_log";
   FILE* fout = NULL;
-  FILE* f = open2(fname, "r", &reads, "\nRead from <%s>");
+  FILE* f = openFile(fname, "r", &reads, "\nRead from <%s>");
   while((bytes = readBytes(buf, f)) != 0) {
     reads.lines++;
     if(bytes == 1) {
@@ -86,23 +86,22 @@ int main(int argc, char* argv[]) {
 //      printf("\n%llu: Empty line ignored.", reads.lines);
       continue;
     }
-    y = lineHeadYear(buf);
+    y = getYear(buf);
     if(y != yout) {
       if(fout != NULL) {
-        close2(fout);
+        closeFile(fout);
         if(++yout != y) {
-          printf("\n%llu: Next Year must be %d not %d."
-            , reads.lines, yout, y);
+          printf("\n%llu: Next Year must be %d not %d.", reads.lines, yout, y);
           exit(2);
         }
       } else yout = y;
       sprintf(fnameout, "%s.%d", fname, y);
-      fout = open2(fnameout, "w", &writes, "\nWrite to <%s>");
+      fout = openFile(fnameout, "w", &writes, "\nWrite to <%s>");
       reads.parts++;
     }
     while(!writeLine(buf, bytes, fout)) {
       if(!(bytes = readBytes(buf, f))) {
-        close2(fout);
+        closeFile(fout);
         fout = NULL;
         printf("\nWARNING: There is no LineFeed in the last line.");
         break;
@@ -111,7 +110,7 @@ int main(int argc, char* argv[]) {
     }
     writes.lines++;
   }
-  if(fout != NULL) close2(fout);
+  if(fout != NULL) closeFile(fout);
   fclose(f);
   
   reads.seconds = (unsigned long long)round(difftime(time(NULL), t));

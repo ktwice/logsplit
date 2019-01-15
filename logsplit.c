@@ -37,9 +37,13 @@ int lineHeadYear(const char* s) {
   exit(2);
 }
 
-FILE* open2(char* fname, char* mode) {
+FILE* open2(char* fname, char* mode, CNT_T* p, char* sf) {
   FILE* f = fopen(fname, mode);
-  if(f != NULL) return f;
+  if(f != NULL) {
+      printf(sf, fname);
+      memset(p, 0, sizeof(CNT_T));
+      return f;
+  }
   perror(fname);
   exit(2);
 }
@@ -74,9 +78,7 @@ int main(int argc, char* argv[]) {
   char buf[BUF_SIZE], fnameout[NBUF_SIZE];
   char* fname = argc>1 ? argv[1] : "access_log";
   FILE* fout = NULL;
-  FILE* f = open2(fname, "r");
-  memset(&reads, 0, sizeof(reads));
-  printf("\nRead from <%s>", fname);
+  FILE* f = open2(fname, "r", &reads, "\nRead from <%s>");
   while((bytes = readBytes(buf, f)) != 0) {
     reads.lines++;
     if(bytes == 1) {
@@ -95,10 +97,8 @@ int main(int argc, char* argv[]) {
         }
       } else yout = y;
       sprintf(fnameout, "%s.%d", fname, y);
-      fout = open2(fnameout, "w");
+      fout = open2(fnameout, "w", &writes, "\nWrite to <%s>");
       reads.parts++;
-      memset(&writes, 0, sizeof(writes));
-      printf("\nWrite to <%s>", fnameout);
     }
     while(!writeLine(buf, bytes, fout)) {
       if(!(bytes = readBytes(buf, f))) {

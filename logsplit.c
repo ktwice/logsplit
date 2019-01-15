@@ -27,14 +27,13 @@ typedef struct {
 CNT_T reads, writes;
 
 int lineHeadYear(const char* s) {
-  int y = 0;
+  int y;
   if((s = strchr(s, '[')) != NULL)
     if((s = strchr(++s, '/')) != NULL)
-      if((s = strchr(++s, '/')) != NULL) {
-        y = atoi(++s);
-        if(y != 0) return y;
-      }
-  printf("\n%llu: Year not found in line.", reads.lines);
+      if((s = strchr(++s, '/')) != NULL) 
+        if((y = atoi(++s)) != 0)
+          return y;
+  printf("\n%llu: Year not found in the line.", reads.lines);
   exit(2);
 }
 
@@ -52,7 +51,7 @@ int readBytes(char* buf, FILE* f) {
     reads.bytes += bytes;
     return bytes;
   }
-  if(feof(f)) return 0;
+  if(!ferror(f)) return 0;
   perror("fgets()");
   exit(2);
 }

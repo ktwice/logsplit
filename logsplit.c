@@ -6,6 +6,7 @@
  * Files are created next to the log-file.
  * Files are named with postfix: Year-after-dot.
  */
+ 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -16,14 +17,8 @@
 #define NBUF_SIZE 1024
 
 typedef struct {
-  unsigned long long parts;
-  unsigned long long lines;
-  unsigned long long empties;
-  unsigned long long bytes;
-  unsigned long long seconds;
-  unsigned long long tails;
+  unsigned long long parts, lines, empties, bytes, seconds, tails;
 } CNT_T;
-
 CNT_T reads, writes;
 
 int getYear(const char* s) {
@@ -51,8 +46,7 @@ FILE* openFile(char* fname, char* mode, CNT_T* p, char* sf) {
 int readBytes(char* buf, FILE* f) {
   int bytes;
   if(fgets(buf, BUF_SIZE, f) != NULL) {
-    bytes = strlen(buf);
-    reads.bytes += bytes;
+    reads.bytes += (bytes = strlen(buf));
     return bytes;
   }
   if(!ferror(f)) return 0;
@@ -86,8 +80,7 @@ int main(int argc, char* argv[]) {
 //      printf("\n%llu: Empty line ignored.", reads.lines);
       continue;
     }
-    y = getYear(buf);
-    if(y != yout) {
+    if((y = getYear(buf)) != yout) {
       if(fout != NULL) {
         closeFile(fout);
         if(++yout != y) {
@@ -99,16 +92,13 @@ int main(int argc, char* argv[]) {
       fout = openFile(fnameout, "w", &writes, "\nWrite to <%s>");
       reads.parts++;
     }
-    while(!writeLine(buf, bytes, fout)) {
-      if(!(bytes = readBytes(buf, f))) {
-        closeFile(fout);
-        fout = NULL;
-        printf("\nWARNING: There is no LineFeed in the last line.");
-        break;
-      }
-      reads.tails++;
-    }
     writes.lines++;
+    while(!writeLine(buf, bytes, fout)) {
+      reads.tails++;
+      if((bytes = readBytes(buf, f)) != 0) continue;
+      printf("\nWARNING: There is no LineFeed in the last line.");
+      break;
+    }
   }
   if(fout != NULL) closeFile(fout);
   fclose(f);
@@ -123,5 +113,6 @@ int main(int argc, char* argv[]) {
 //  printf("\n%llu bytes total read at %llu lines/second"
 //    , reads.bytes, (unsigned long long)round(reads.lines / reads.seconds));
   printf("\n");
+  
   return 0;
 }
